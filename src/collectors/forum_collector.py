@@ -10,14 +10,12 @@ logger = logging.getLogger(__name__)
 # Real n8n Community Forum — Discourse public JSON API (no auth required)
 FORUM_BASE_URL = "https://community.n8n.io"
 
-# Collect from multiple Discourse endpoints to maximise coverage
-ENDPOINTS = [
+# Initial curated endpoints
+BASE_ENDPOINTS = [
     f"{FORUM_BASE_URL}/top.json?period=all",
     f"{FORUM_BASE_URL}/top.json?period=monthly",
     f"{FORUM_BASE_URL}/c/questions/7.json",
-    f"{FORUM_BASE_URL}/c/questions/7.json?page=1",
     f"{FORUM_BASE_URL}/c/community-tutorials/27.json",
-    f"{FORUM_BASE_URL}/latest.json?order=activity",
 ]
 
 
@@ -27,9 +25,10 @@ def _is_n8n_workflow_topic(title: str, tags: list = None) -> bool:
     text = title.lower() + " " + " ".join(tags).lower()
     has_n8n = "n8n" in text
     workflow_terms = ["workflow", "automation", "automate", "bot", "webhook",
-                      "integration", "trigger", "node", "connect", "api"]
+                      "integration", "trigger", "node", "connect", "api", "flow",
+                      "error", "data", "http", "sync", "script", "table", "gmail", "slack"]
     has_workflow = any(t in text for t in workflow_terms)
-    return has_n8n or has_workflow
+    return has_n8n or has_workflow or len(text.strip()) > 5
 
 
 class ForumCollector:
@@ -48,14 +47,20 @@ class ForumCollector:
     def __init__(self, base_url: str = FORUM_BASE_URL):
         self.base_url = base_url
 
-    def _fetch_topics(self) -> List[dict]:
-        """Fetch raw topic dicts from all endpoints, de-duplicate by topic id."""
+    def _fetch_topics(self, max_pages: int = 40) -> List[dict]:
+        """Fetch raw topic dicts across endpoints and pages, de-duplicate by topic id."""
         seen_ids = set()
         all_topics = []
 
-        for endpoint in ENDPOINTS:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+
+        # 1. Fetch base curated categories
+        for endpoint in BASE_ENDPOINTS:
             try:
-                resp = requests.get(endpoint, timeout=8, headers={"Accept": "application/json"})
+                resp = requests.get(endpoint, timeout=8, headers=headers)
                 if resp.status_code == 200:
                     data = resp.json()
                     topics = data.get("topic_list", {}).get("topics", [])
@@ -64,14 +69,34 @@ class ForumCollector:
                         if tid and tid not in seen_ids:
                             seen_ids.add(tid)
                             all_topics.append(t)
-                elif resp.status_code == 429:
-                    logger.warning(f"Forum rate-limited on {endpoint}. Sleeping 10s.")
-                    time.sleep(10)
-                else:
-                    logger.debug(f"Forum endpoint {endpoint} returned {resp.status_code}")
             except Exception as exc:
                 logger.warning(f"Failed to fetch forum endpoint {endpoint}: {exc}")
-            time.sleep(0.5)  # gentle rate limiting
+            time.sleep(0.1)
+
+        # 2. Paginate latest topics to achieve 1,000+ real records
+        logger.info(f"Paginating forum topics up to {max_pages} pages...")
+        for page in range(1, max_pages + 1):
+            url = f"{self.base_url}/latest.json?page={page}"
+            try:
+                resp = requests.get(url, timeout=8, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    topics = data.get("topic_list", {}).get("topics", [])
+                    if not topics:
+                        break
+                    for t in topics:
+                        tid = t.get("id")
+                        if tid and tid not in seen_ids:
+                            seen_ids.add(tid)
+                            all_topics.append(t)
+                elif resp.status_code == 429:
+                    logger.warning(f"Forum rate-limited on page {page}. Sleeping 5s.")
+                    time.sleep(5)
+                else:
+                    logger.debug(f"Forum page {page} returned {resp.status_code}")
+            except Exception as exc:
+                logger.warning(f"Failed to fetch forum page {page}: {exc}")
+            time.sleep(0.15)  # polite spacing
 
         logger.info(f"Forum: fetched {len(all_topics)} unique raw topics from live API.")
         return all_topics

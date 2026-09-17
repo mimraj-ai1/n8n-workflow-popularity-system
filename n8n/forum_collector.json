@@ -1,5 +1,5 @@
 {
-  "name": "Popularity \u2014 Step 2: Forum Collector",
+  "name": "Popularity — Step 2: Forum Collector",
   "nodes": [
     {
       "parameters": {},
@@ -89,13 +89,7 @@
               "batchSize": 1,
               "batchInterval": 600
             }
-          },
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          },
-          "ignoreResponseCode": true
+          }
         }
       },
       "id": "b54a108c-d902-44e3-b077-9426e7102039",
@@ -126,7 +120,7 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "RJ1pDG4Nz5cfmPe1"
+          "value": "HdXajy2g3DYOtfC3"
         },
         "matchType": "allConditions",
         "filters": {

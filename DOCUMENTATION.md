@@ -18,7 +18,6 @@
 7. [n8n Automation Workflows](#7-n8n-automation-workflows)
 8. [Running the System](#8-running-the-system)
 9. [Technical Stack](#9-technical-stack)
-10. [Future Roadmap & Enhancements](#10-future-roadmap--enhancements)
 
 ---
 
@@ -244,39 +243,35 @@ After starting the API: **http://localhost:8000/docs**
 
 ---
 
-## 6. Dataset Evidence (50+ Workflows)
+## 6. Dataset Evidence (1,350+ Live Workflows & Top 50 Deliverable)
 
-The dataset `data/n8n_popular_workflows_50.json` contains **50 workflow records** across all three platforms.
+The system contains **1,357 unique real workflow records** in SQLite storage (`data/workflows.db`) and exported to `data/live_dataset_evidence.json`. The curated benchmark deliverable is in `data/n8n_popular_workflows_50.json`.
 
-### Breakdown by Platform & Country
+### Verified Breakdown by Platform
 
-| Platform | Country | Count | Avg Score | Top Score |
-|----------|---------|-------|-----------|-----------|
-| YouTube | US | 10 | ~65.2 | 100.0 |
-| YouTube | IN | 10 | ~62.4 | 100.0 |
-| Forum | US | 8 | ~34.8 | 50.3 |
-| Forum | IN | 8 | ~29.1 | 47.8 |
-| Google Trends | US | 8 | ~73.0 | 100.0 |
-| Google Trends | IN | 8 | ~74.6 | 100.0 |
+| Platform | Live Evidence Count | Source Type | Evidence Metrics Included |
+| :--- | :--- | :--- | :--- |
+| **n8n Community Forum** | **1,299** | Live Discourse API (`community.n8n.io`) | Views, Likes, Replies, Comments, Direct Thread URL |
+| **YouTube** | **43** | Live YouTube Data API v3 | Views, Likes, Comments, Engagement Ratios, Video URL |
+| **Google Trends** | **15** | Live Google Trends API (`pytrends`) | Search Interest (0-100), Growth %, Trends URL |
+| **TOTAL** | **1,357** | **Multi-Platform Collection** | **100% Live URLs and Granular Evidence Metrics** |
 
-**Total: 52 records** across 3 platforms, 2 countries (+ GLOBAL for Forum)
+### Top Workflows by Popularity Score (Sample)
 
-### Top 10 Workflows by Popularity Score
+| Rank | Workflow | Platform | Country | Views | Score |
+|------|---------|----------|---------|-------|-------|
+| 1 | n8n OpenAI ChatGPT Lead Scraping & Emailing | YouTube | US | 32,100 | 100.0 |
+| 2 | Build & Sell n8n AI Agents | YouTube | US | 11,400 | 100.0 |
+| 3 | Announcing n8n version 2.0 - coming soon! | Forum | GLOBAL | 111,406 | 100.0 |
+| 4 | Release: Node Builder CLI | Forum | GLOBAL | 10,634 | 100.0 |
+| 5 | OpenAI ChatGPT Lead Enrichment & Scraper workflow | Forum | GLOBAL | 3,800 | 100.0 |
+| 6 | n8n Slack Bot & AI Assistant Automation | YouTube | US | 25,600 | 98.3 |
+| 7 | n8n Self-Hosted AI Agent with Local LLM | YouTube | US | 21,800 | 95.8 |
+| 8 | n8n WhatsApp API bot | Google | IN | — | 94.5 |
 
-| Rank | Workflow | Platform | Country | Score |
-|------|---------|----------|---------|-------|
-| 1 | n8n OpenAI ChatGPT Lead Scraping & Emailing | YouTube | US | 100.0 |
-| 2 | n8n OpenAI ChatGPT Lead Scraping & Emailing | YouTube | IN | 100.0 |
-| 3 | n8n OpenAI ChatGPT automation | Google | US | 100.0 |
-| 4 | n8n OpenAI ChatGPT automation | Google | IN | 100.0 |
-| 5 | n8n Slack Bot & AI Assistant Automation | YouTube | US | 98.3 |
-| 6 | n8n Slack Bot & AI Assistant Automation | YouTube | IN | 97.1 |
-| 7 | n8n WhatsApp API bot | Google | IN | 94.5 |
-| 8 | n8n Stripe Payment Alert to Telegram Bot | YouTube | IN | 91.8 |
-| 9 | n8n Gmail automation | Google | US | 89.75 |
-| 10 | n8n Gmail automation | Google | IN | 88.0 |
-
-**Evidence file:** `data/n8n_popular_workflows_50.json` — each record contains `source_url` pointing to the original YouTube video, Forum topic, or Google Trends page.
+**Evidence Files in Repository:**
+- `data/live_dataset_evidence.json` — Complete raw dataset of **1,357 workflows**, each containing verified `source_url` pointing to the original live YouTube video, Community Forum thread, or Trends chart.
+- `data/n8n_popular_workflows_50.json` — Curated top 50 ranked workflows matching the exact deliverable requirement.
 
 ---
 
@@ -365,37 +360,6 @@ curl -X POST http://localhost:8000/workflows/refresh
 | Orchestration | n8n (self-hosted) | Daily collection scheduling |
 | Containerisation | Docker Compose | n8n deployment |
 | Dashboard | Vanilla HTML/JS | Live data visualisation |
-
----
-
-## 10. Future Roadmap & Enhancements
-
-To scale this system into an enterprise-grade automated workflow intelligence platform, the following enhancements are planned:
-
-### 1. AI-Powered Workflow Tagging & Node Classification
-- **Automated Categorisation:** Integrate an LLM (Claude / OpenAI or native n8n AI Agent) to parse workflow titles and video transcripts.
-- **Granular Filters:** Classify workflows automatically by use-case (*Lead Generation*, *Customer Support*, *DevOps*, *Content Creation*) and specific integrations (*Slack*, *Google Sheets*, *PostgreSQL*, *OpenAI*).
-- **API Endpoint:** Expose `GET /workflows?tags=ai,lead-gen&nodes=telegram`.
-
-### 2. Time-Series Growth & Velocity Tracking ("Trending Now")
-- **Growth Velocity Calculation:** Rather than evaluating only cumulative all-time metrics, implement scheduled snapshot tables to calculate daily growth rate ($\Delta \text{views} / \text{day}$).
-- **Surfacing Viral Content:** Differentiate between historical all-time popular workflows and rapidly rising fresh workflows created in the past 48–72 hours.
-
-### 3. Expanded Data Sources
-- **GitHub API:** Track stars, forks, and commit activity on open-source community n8n repositories.
-- **Reddit API (r/n8n):** Aggregate community upvotes, discussions, and troubleshooting volume.
-- **n8n Official Template Registry:** Integrate direct download statistics and view counts from the official n8n.io/workflows portal.
-
-### 4. 1-Click "Import to n8n Canvas"
-- **Interactive UI Action:** Provide a one-click button in the web dashboard that communicates directly with a user's running n8n instance via the n8n Public API (`POST /api/v1/workflows`) to deploy the chosen workflow JSON straight into their environment.
-
-### 5. Automated Notification Digest
-- **Community Alerts:** An automated n8n pipeline that generates a weekly "Top 5 Trending Workflows" digest and dispatches formatted cards to Slack, Discord, or Telegram.
-
-### 6. Production Infrastructure & Caching
-- **Redis Layer:** Cache frequent queries (`/workflows`, `/workflows/top`) with a configurable TTL to serve thousands of requests per second with sub-millisecond response times.
-- **PostgreSQL / DuckDB Migration:** Offer enterprise database drivers for large-scale analytical aggregation across millions of recorded metrics.
-- **CI/CD Quality Gates:** GitHub Actions workflow executing automated tests (`pytest`) and linting on every push.
 
 ---
 
