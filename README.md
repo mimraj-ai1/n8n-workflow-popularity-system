@@ -142,7 +142,7 @@ Platforms cannot be scored on raw view count alone (e.g. 10,000 YouTube views vs
 * **Google Trends Formula:**
   $$\text{Score} = \min\left(100,\ 0.75 \cdot \text{Search Interest} + 0.5 \cdot \max(0, \text{Growth \%})\right)$$
 
-## ⚡ Native n8n Automation Engine (Primary Orchestration)
+## ⚡ Native n8n Automation Engine 
 
 As specified in the assignment requirements, the system is engineered with **n8n as the core orchestration pipeline**. Four production-ready workflow JSONs are available in the [`n8n/`](n8n/) folder to execute automated daily data collection, processing, and ranking directly on your n8n canvas:
 
@@ -169,15 +169,9 @@ Validates:
 
 ---
 
-## 🚀 Future Roadmap & Scalability
+## ## 🚀 Future Roadmap & Scalability
 
 - Real-Time Popularity & Trend Monitoring
 - More Data Sources (GitHub, Reddit, etc.)
-- Scale to 25,000+ Records
+- Scale to 20,000+ Records
 - Alerts & Notifications for Trending Workflows
-
----
-
-## 📄 License & Attribution
-Developed for the Technical Assignment. Code is released under the [MIT License](LICENSE).
-
