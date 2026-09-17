@@ -169,5 +169,9 @@ Validates:
 
 ---
 
-## 📄 License & Attribution
-Developed for the Technical Assignment. Code is released under the [MIT License](LICENSE).
+## 🚀 Future Roadmap & Scalability
+
+- Real-Time Popularity & Trend Monitoring
+- More Data Sources (GitHub, Reddit, etc.)
+- Scale to 25,000+ Records
+- Alerts & Notifications for Trending Workflows
