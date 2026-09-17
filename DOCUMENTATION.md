@@ -18,6 +18,7 @@
 7. [n8n Automation Workflows](#7-n8n-automation-workflows)
 8. [Running the System](#8-running-the-system)
 9. [Technical Stack](#9-technical-stack)
+10. [Future Roadmap & Enhancements](#10-future-roadmap--enhancements)
 
 ---
 
@@ -364,6 +365,37 @@ curl -X POST http://localhost:8000/workflows/refresh
 | Orchestration | n8n (self-hosted) | Daily collection scheduling |
 | Containerisation | Docker Compose | n8n deployment |
 | Dashboard | Vanilla HTML/JS | Live data visualisation |
+
+---
+
+## 10. Future Roadmap & Enhancements
+
+To scale this system into an enterprise-grade automated workflow intelligence platform, the following enhancements are planned:
+
+### 1. AI-Powered Workflow Tagging & Node Classification
+- **Automated Categorisation:** Integrate an LLM (Claude / OpenAI or native n8n AI Agent) to parse workflow titles and video transcripts.
+- **Granular Filters:** Classify workflows automatically by use-case (*Lead Generation*, *Customer Support*, *DevOps*, *Content Creation*) and specific integrations (*Slack*, *Google Sheets*, *PostgreSQL*, *OpenAI*).
+- **API Endpoint:** Expose `GET /workflows?tags=ai,lead-gen&nodes=telegram`.
+
+### 2. Time-Series Growth & Velocity Tracking ("Trending Now")
+- **Growth Velocity Calculation:** Rather than evaluating only cumulative all-time metrics, implement scheduled snapshot tables to calculate daily growth rate ($\Delta \text{views} / \text{day}$).
+- **Surfacing Viral Content:** Differentiate between historical all-time popular workflows and rapidly rising fresh workflows created in the past 48–72 hours.
+
+### 3. Expanded Data Sources
+- **GitHub API:** Track stars, forks, and commit activity on open-source community n8n repositories.
+- **Reddit API (r/n8n):** Aggregate community upvotes, discussions, and troubleshooting volume.
+- **n8n Official Template Registry:** Integrate direct download statistics and view counts from the official n8n.io/workflows portal.
+
+### 4. 1-Click "Import to n8n Canvas"
+- **Interactive UI Action:** Provide a one-click button in the web dashboard that communicates directly with a user's running n8n instance via the n8n Public API (`POST /api/v1/workflows`) to deploy the chosen workflow JSON straight into their environment.
+
+### 5. Automated Notification Digest
+- **Community Alerts:** An automated n8n pipeline that generates a weekly "Top 5 Trending Workflows" digest and dispatches formatted cards to Slack, Discord, or Telegram.
+
+### 6. Production Infrastructure & Caching
+- **Redis Layer:** Cache frequent queries (`/workflows`, `/workflows/top`) with a configurable TTL to serve thousands of requests per second with sub-millisecond response times.
+- **PostgreSQL / DuckDB Migration:** Offer enterprise database drivers for large-scale analytical aggregation across millions of recorded metrics.
+- **CI/CD Quality Gates:** GitHub Actions workflow executing automated tests (`pytest`) and linting on every push.
 
 ---
 
