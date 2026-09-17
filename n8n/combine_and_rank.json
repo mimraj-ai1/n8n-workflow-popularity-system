@@ -1,0 +1,214 @@
+{
+  "name": "Popularity \u2014 Step 4: Combine + Rank",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "294aea59-e7ac-4c63-aa47-e9116cc04fec",
+      "name": "When clicking Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "deleteRows",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Niz3sUAsbloa9f6v",
+          "cachedResultName": "workflow_rankings"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ranking_key",
+              "condition": "isNotEmpty"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c73f3d9-9ba4-4d5a-af7f-932099eacdfd",
+      "name": "Clear Rankings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        96
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "RJ1pDG4Nz5cfmPe1",
+          "cachedResultName": "workflow_popularity"
+        },
+        "returnAll": true
+      },
+      "id": "48a186be-d6f4-467d-8119-27173c4d12f5",
+      "name": "Get Source Rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        96
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Rows from workflow_popularity (drop any empty-json items).\nconst rows = $input.all()\n  .map((i) => i.json)\n  .filter((r) => r && Object.keys(r).length > 0);\n\nconst isWorkflow = (p) => p === 'youtube' || p === 'forum';\nconst workflowRows = rows.filter((r) => isWorkflow(r.platform));\nconst trendRows = rows.filter((r) => r.platform === 'trends');\n\n// Min-max normalize popularity_score to 0-100 within each platform separately.\n// (reduce, not spread, so it scales to tens of thousands of rows)\nfunction normalizeByPlatform(list) {\n  const byPlat = {};\n  for (const r of list) {\n    const p = r.platform || 'unknown';\n    (byPlat[p] = byPlat[p] || []).push(r);\n  }\n  const result = [];\n  for (const plat of Object.keys(byPlat)) {\n    const group = byPlat[plat];\n    let min = Infinity;\n    let max = -Infinity;\n    for (const r of group) {\n      const s = Number(r.popularity_score) || 0;\n      if (s < min) min = s;\n      if (s > max) max = s;\n    }\n    for (const r of group) {\n      const s = Number(r.popularity_score) || 0;\n      let norm;\n      if (max === min) norm = 100; // all tied on their own scale\n      else norm = ((s - min) / (max - min)) * 100;\n      norm = Math.round(norm * 100) / 100;\n      result.push(Object.assign({}, r, { __norm: norm }));\n    }\n  }\n  return result;\n}\n\nconst wfNorm = normalizeByPlatform(workflowRows);\nconst trNorm = normalizeByPlatform(trendRows);\n\nconst rankedAt = new Date().toISOString();\nconst out = [];\n\nfunction emitRanked(list, category, scope, filterFn) {\n  const subset = list.filter(filterFn);\n  subset.sort(\n    (a, b) =>\n      b.__norm - a.__norm ||\n      (Number(b.popularity_score) || 0) - (Number(a.popularity_score) || 0)\n  );\n  let pos = 0;\n  for (const r of subset) {\n    pos++;\n    const sid = r.source_id || '';\n    out.push({\n      json: {\n        rank_scope: scope,\n        category: category,\n        rank_position: pos,\n        workflow: r.workflow || r.keyword || '',\n        platform: r.platform || '',\n        country: r.country || '',\n        keyword: r.keyword || '',\n        raw_popularity_score: Number(r.popularity_score) || 0,\n        normalized_score: r.__norm,\n        unified_score: r.__norm,\n        views: Number(r.views) || 0,\n        likes: Number(r.likes) || 0,\n        comments: Number(r.comments) || 0,\n        replies: Number(r.replies) || 0,\n        contributors: Number(r.contributors) || 0,\n        trend_interest: Number(r.trend_interest) || 0,\n        trend_change_pct: Number(r.trend_change_pct) || 0,\n        source_id: sid,\n        source_url: r.source_url || '',\n        channel_title: r.channel_title || '',\n        ranking_key: scope + '|' + category + '|' + sid,\n        ranked_at: rankedAt,\n      },\n    });\n  }\n}\n\n// Individual workflows (YouTube + Forum), ranked together via normalized scores.\nemitRanked(wfNorm, 'workflow', 'ALL', () => true);\nemitRanked(wfNorm, 'workflow', 'US', (r) => r.country === 'US');\nemitRanked(wfNorm, 'workflow', 'IN', (r) => r.country === 'IN');\n\n// Google Trends keywords, ranked separately.\nemitRanked(trNorm, 'trends', 'ALL', () => true);\nemitRanked(trNorm, 'trends', 'US', (r) => r.country === 'US');\nemitRanked(trNorm, 'trends', 'IN', (r) => r.country === 'IN');\n\nreturn out;"
+      },
+      "id": "3112fd33-fcd1-44ef-b8bd-1cdabc5c0f60",
+      "name": "Compute Rankings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Niz3sUAsbloa9f6v",
+          "cachedResultName": "workflow_rankings"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "rank_scope": "={{ $json.rank_scope }}",
+            "category": "={{ $json.category }}",
+            "rank_position": "={{ $json.rank_position }}",
+            "workflow": "={{ $json.workflow }}",
+            "platform": "={{ $json.platform }}",
+            "country": "={{ $json.country }}",
+            "keyword": "={{ $json.keyword }}",
+            "raw_popularity_score": "={{ $json.raw_popularity_score }}",
+            "normalized_score": "={{ $json.normalized_score }}",
+            "unified_score": "={{ $json.unified_score }}",
+            "views": "={{ $json.views }}",
+            "likes": "={{ $json.likes }}",
+            "comments": "={{ $json.comments }}",
+            "replies": "={{ $json.replies }}",
+            "contributors": "={{ $json.contributors }}",
+            "trend_interest": "={{ $json.trend_interest }}",
+            "trend_change_pct": "={{ $json.trend_change_pct }}",
+            "source_id": "={{ $json.source_id }}",
+            "source_url": "={{ $json.source_url }}",
+            "channel_title": "={{ $json.channel_title }}",
+            "ranking_key": "={{ $json.ranking_key }}",
+            "ranked_at": "={{ $json.ranked_at }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "cf44c700-1e7d-4ce0-bbb6-b3ff45888fcb",
+      "name": "Insert Rankings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "2db728aa-1ece-419d-b6a7-8e189e730bb9",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking Test": {
+      "main": [
+        [
+          {
+            "node": "Clear Rankings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Rankings": {
+      "main": [
+        [
+          {
+            "node": "Get Source Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Source Rows": {
+      "main": [
+        [
+          {
+            "node": "Compute Rankings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Rankings": {
+      "main": [
+        [
+          {
+            "node": "Insert Rankings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Clear Rankings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8316eb69-df86-4fd4-b93d-7af5f2323207",
+  "meta": {
+    "instanceId": "eab16c636546cfe3db177bd6b3e3ed3933038ab4cd0c9da7feececfcb1a53b16"
+  },
+  "nodeGroups": [],
+  "id": "6uUfbPOjRX1Tr5lb",
+  "tags": []
+}

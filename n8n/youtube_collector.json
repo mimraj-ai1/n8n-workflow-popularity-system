@@ -1,0 +1,315 @@
+{
+  "name": "Popularity \u2014 Step 1: YouTube Collector",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "760ddb0a-1301-41c2-af28-6f7c22255c84",
+      "name": "When clicking Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Search term and result cap for this collection run.\nconst keyword = \"n8n workflow\";\nconst maxResults = 25;\nreturn [{ json: { keyword, maxResults, country: \"GLOBAL\" } }];"
+      },
+      "id": "9998a2ca-b228-4aa7-9c05-c125a9a9b87c",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet"
+            },
+            {
+              "name": "type",
+              "value": "video"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.keyword }}"
+            },
+            {
+              "name": "maxResults",
+              "value": "={{ $json.maxResults }}"
+            },
+            {
+              "name": "order",
+              "value": "relevance"
+            },
+            {
+              "name": "key",
+              "value": "YOUR_YOUTUBE_API_KEY_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad16f4ea-fcfb-4b18-9ebc-9626d7986aa8",
+      "name": "Search Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        416,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect video IDs from the raw search.list response(s) and chunk them\n// into groups of up to 50 \u2014 the max the videos.list endpoint accepts per\n// request. Emits one item per chunk with a comma-separated id string.\nconst CHUNK_SIZE = 50;\n\nconst ids = [];\nfor (const item of $input.all()) {\n  const results = item.json?.items || [];\n  for (const r of results) {\n    const vid = r.id?.videoId;\n    if (vid) ids.push(vid);\n  }\n}\n\nconst out = [];\nfor (let i = 0; i < ids.length; i += CHUNK_SIZE) {\n  const chunk = ids.slice(i, i + CHUNK_SIZE);\n  out.push({ json: { ids: chunk.join(\",\"), count: chunk.length } });\n}\n\n// If nothing was found, emit no items so downstream nodes are skipped.\nreturn out;"
+      },
+      "id": "70d37705-2097-4ac2-bad1-a42e0d59d82b",
+      "name": "Batch IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/videos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet,statistics"
+            },
+            {
+              "name": "id",
+              "value": "={{ $json.ids }}"
+            },
+            {
+              "name": "key",
+              "value": "YOUR_YOUTUBE_API_KEY_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "47c2bd02-8e9a-4686-9065-fa179974d1f1",
+      "name": "Get Video Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        640,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const keyword = $('Config').first().json.keyword;\nconst country = $('Config').first().json.country;\nconst out = [];\n\n// Each input item is one batched videos.list response containing an\n// items[] array. Flatten every batch back to one row per video.\nfor (const item of $input.all()) {\n  const videos = item.json?.items || [];\n\n  for (const v of videos) {\n    const stats = v.statistics || {};\n    const snip = v.snippet || {};\n\n    const views = Number(stats.viewCount || 0);\n    const likes = Number(stats.likeCount || 0);\n    const comments = Number(stats.commentCount || 0);\n\n    const likeToView = views > 0 ? likes / views : 0;\n    const commentToView = views > 0 ? comments / views : 0;\n\n    const popularityScore =\n      Math.log10(views + 1) * 40 +\n      likeToView * 300 +\n      commentToView * 600;\n\n    out.push({\n      json: {\n        workflow: snip.title || \"\",\n        platform: \"youtube\",\n        country,\n        keyword,\n        views,\n        likes,\n        comments,\n        like_to_view_ratio: Number(likeToView.toFixed(6)),\n        comment_to_view_ratio: Number(commentToView.toFixed(6)),\n        popularity_score: Number(popularityScore.toFixed(2)),\n        source_id: v.id || \"\",\n        source_url: v.id ? \"https://www.youtube.com/watch?v=\" + v.id : \"\",\n        channel_title: snip.channelTitle || \"\",\n        published_at: snip.publishedAt || \"\",\n        collected_at: new Date().toISOString(),\n      },\n    });\n  }\n}\n\nreturn out;"
+      },
+      "id": "b1dd4a81-db0d-4a99-92b1-89d76a879ea2",
+      "name": "Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "RJ1pDG4Nz5cfmPe1"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "source_id",
+              "keyValue": "={{ $json.source_id }}"
+            },
+            {
+              "keyName": "platform",
+              "keyValue": "={{ $json.platform }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "source_id"
+          ],
+          "value": {
+            "workflow": "={{ $json.workflow }}",
+            "platform": "={{ $json.platform }}",
+            "country": "={{ $json.country }}",
+            "keyword": "={{ $json.keyword }}",
+            "views": "={{ $json.views }}",
+            "likes": "={{ $json.likes }}",
+            "comments": "={{ $json.comments }}",
+            "like_to_view_ratio": "={{ $json.like_to_view_ratio }}",
+            "comment_to_view_ratio": "={{ $json.comment_to_view_ratio }}",
+            "popularity_score": "={{ $json.popularity_score }}",
+            "source_id": "={{ $json.source_id }}",
+            "source_url": "={{ $json.source_url }}",
+            "channel_title": "={{ $json.channel_title }}",
+            "published_at": "={{ $json.published_at }}",
+            "collected_at": "={{ $json.collected_at }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "c4367950-d7d5-495d-a5a6-1c121e9b3eb0",
+      "name": "Upsert Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "0f7a04b3-4aaf-4760-881c-96891778f4b7",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking Test": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Search Videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Videos": {
+      "main": [
+        [
+          {
+            "node": "Batch IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch IDs": {
+      "main": [
+        [
+          {
+            "node": "Get Video Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video Stats": {
+      "main": [
+        [
+          {
+            "node": "Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score": {
+      "main": [
+        [
+          {
+            "node": "Upsert Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "44471749-ba77-4118-9c14-17f9be5c0204",
+  "meta": {
+    "instanceId": "a3caea2b1954dfcf15d7d80547cd7c69a2b7983bb631d38dae57231cdbf8817d"
+  },
+  "nodeGroups": [
+    {
+      "id": "c6a44f2e-46d7-477b-8d87-5202d2119c51",
+      "name": "Collect",
+      "nodeIds": [
+        "ad16f4ea-fcfb-4b18-9ebc-9626d7986aa8",
+        "70d37705-2097-4ac2-bad1-a42e0d59d82b",
+        "47c2bd02-8e9a-4686-9065-fa179974d1f1"
+      ],
+      "description": "Search YouTube for workflow videos and fetch statistics in batched videos.list calls (up to 50 IDs each)."
+    },
+    {
+      "id": "0581048c-03a3-4c7f-b312-d32b5006f721",
+      "name": "Score & Store",
+      "nodeIds": [
+        "b1dd4a81-db0d-4a99-92b1-89d76a879ea2",
+        "c4367950-d7d5-495d-a5a6-1c121e9b3eb0"
+      ],
+      "description": "Compute engagement ratios and popularity score, then upsert into the workflow_popularity data table."
+    }
+  ],
+  "id": "qacZQoT5rrDLDMZD",
+  "tags": []
+}

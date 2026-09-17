@@ -1,0 +1,108 @@
+{
+  "_metadata": {
+    "description": "Sample API response format. Real data is populated after running collectors with valid credentials.",
+    "note": "The records below represent the expected JSON shape. Run POST /workflows/collect to populate with real data.",
+    "generated_by": "n8n Workflow Popularity System v1.0.0",
+    "api_endpoint": "GET /workflows/top?limit=10",
+    "instructions": "1. Configure YOUTUBE_API_KEY in .env  2. docker compose up -d  3. POST /workflows/collect  4. GET /workflows/top"
+  },
+  "expected_response_format": {
+    "pagination": {
+      "total": 150,
+      "limit": 10,
+      "offset": 0,
+      "returned": 10
+    },
+    "filters": {
+      "platform": null,
+      "country": null,
+      "min_score": 0.0,
+      "search": null
+    },
+    "workflows": [
+      {
+        "id": 1,
+        "workflow": "n8n AI Agent Workflow with OpenAI",
+        "platform": "youtube",
+        "country": "US",
+        "source_id": "<real_youtube_video_id>",
+        "source_url": "https://www.youtube.com/watch?v=<video_id>",
+        "popularity_metrics": {
+          "popularity_score": 87.42,
+          "views": 125000,
+          "likes": 6250,
+          "comments": 890,
+          "like_to_view_ratio": 0.05,
+          "comment_to_view_ratio": 0.007
+        },
+        "trend": {
+          "direction": "up",
+          "change_7d_percent": 8.3,
+          "change_30d_percent": 22.1
+        },
+        "collected_at": "2026-09-16T11:00:00Z"
+      },
+      {
+        "id": 2,
+        "workflow": "n8n WhatsApp Automation Workflow",
+        "platform": "youtube",
+        "country": "IN",
+        "source_id": "<real_youtube_video_id>",
+        "source_url": "https://www.youtube.com/watch?v=<video_id>",
+        "popularity_metrics": {
+          "popularity_score": 82.15,
+          "views": 89000,
+          "likes": 4450,
+          "comments": 623,
+          "like_to_view_ratio": 0.05,
+          "comment_to_view_ratio": 0.007
+        },
+        "trend": {
+          "direction": "up",
+          "change_7d_percent": 5.1,
+          "change_30d_percent": 15.8
+        },
+        "collected_at": "2026-09-16T11:00:00Z"
+      },
+      {
+        "id": 3,
+        "workflow": "n8n webhook to Slack workflow question",
+        "platform": "forum",
+        "country": "GLOBAL",
+        "source_id": "<real_discourse_topic_id>",
+        "source_url": "https://community.n8n.io/t/<slug>/<topic_id>",
+        "popularity_metrics": {
+          "popularity_score": 74.33,
+          "views": 12500,
+          "likes": 187,
+          "replies": 145,
+          "contributors": null
+        },
+        "trend": {
+          "direction": "stable",
+          "change_7d_percent": 0.8,
+          "change_30d_percent": 1.2
+        },
+        "collected_at": "2026-09-16T11:00:00Z"
+      },
+      {
+        "id": 4,
+        "workflow": "n8n workflow (Google Trends)",
+        "platform": "google",
+        "country": "US",
+        "source_id": "google_US_n8n_workflow",
+        "source_url": "https://trends.google.com/trends/explore?q=n8n+workflow&geo=US",
+        "popularity_metrics": {
+          "popularity_score": 71.50,
+          "search_interest": 78.0
+        },
+        "trend": {
+          "direction": "up",
+          "change_7d_percent": null,
+          "change_30d_percent": null
+        },
+        "collected_at": "2026-09-16T11:00:00Z"
+      }
+    ]
+  }
+}

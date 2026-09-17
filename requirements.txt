@@ -1,0 +1,8 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.1
+requests==2.32.3
+pytrends==4.9.2
+# urllib3<2 required: pytrends uses method_whitelist which was removed in urllib3>=2.0
+urllib3<2
+python-multipart==0.0.9
+aiofiles==23.2.1

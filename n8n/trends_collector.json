@@ -1,0 +1,259 @@
+{
+  "name": "Popularity \u2014 Step 3: Trends Collector",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "26c22b67-51c3-4657-8eb1-99db10e4bf46",
+      "name": "When clicking Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Approved Step 3 design: 5 keywords x 2 countries, but only TWO\n// SerpApi requests per run (one multi-query request per country).\nconst keywords = [\"n8n\", \"n8n workflow\", \"workflow automation\", \"n8n template\", \"no code automation\"];\nconst countries = [\"US\", \"IN\"];\n\n// ~60-day window as a custom SerpApi google_trends date range.\nconst end = new Date();\nconst start = new Date(Date.now() - 60 * 24 * 3600 * 1000);\nconst fmt = (d) => d.toISOString().slice(0, 10);\nconst date = fmt(start) + \" \" + fmt(end);\n\nconst items = [];\nfor (const country of countries) {\n  items.push({ json: { country, q: keywords.join(\",\"), keywords, date } });\n}\nreturn items;"
+      },
+      "id": "282573f5-e353-45c9-9df1-2547d5930d10",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "40c7aaa1-8548-4cbf-95e9-0c5914566d5f",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_trends"
+            },
+            {
+              "name": "data_type",
+              "value": "TIMESERIES"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.q }}"
+            },
+            {
+              "name": "geo",
+              "value": "={{ $json.country }}"
+            },
+            {
+              "name": "date",
+              "value": "={{ $json.date }}"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_SERPAPI_KEY_HERE"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        }
+      },
+      "id": "96cb5285-3829-47a1-b264-3f64628cbad8",
+      "name": "Get Trends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Each input item = one SerpApi multi-query TIMESERIES response.\n// Pair it with its Config item by index to recover country + keywords.\nconst configItems = $('Config').all();\nconst inputs = $input.all();\nconst out = [];\n\nfor (let i = 0; i < inputs.length; i++) {\n  const resp = inputs[i].json || {};\n  const ctx = (configItems[i] && configItems[i].json) || {};\n  const country = ctx.country || \"\";\n  const keywords = ctx.keywords || [];\n\n  const timeline =\n    (resp.interest_over_time && resp.interest_over_time.timeline_data) || [];\n\n  // Transpose: keyword k -> its own time series across all timeline points.\n  for (let k = 0; k < keywords.length; k++) {\n    const keyword = keywords[k];\n    const points = [];\n    for (const p of timeline) {\n      const v = p.values && p.values[k] ? p.values[k].extracted_value : null;\n      if (typeof v === \"number\") points.push(v);\n    }\n\n    let trendInterest = 0;\n    let trendChangePct = 0;\n    if (points.length > 0) {\n      const sum = points.reduce((a, b) => a + b, 0);\n      trendInterest = Math.round((sum / points.length) * 100) / 100;\n\n      // Momentum: last quarter avg vs first quarter avg of the window.\n      const q = Math.max(1, Math.floor(points.length / 4));\n      const firstAvg = points.slice(0, q).reduce((a, b) => a + b, 0) / q;\n      const lastAvg = points.slice(-q).reduce((a, b) => a + b, 0) / q;\n      if (firstAvg > 0) {\n        trendChangePct =\n          Math.round(((lastAvg - firstAvg) / firstAvg) * 10000) / 100;\n      }\n    }\n\n    // Trends score: relative interest + positive-momentum bonus (own 0-100 scale).\n    const popularityScore =\n      Math.round((trendInterest * 5 + Math.max(trendChangePct, 0) * 2) * 100) / 100;\n\n    const slug = String(keyword)\n      .toLowerCase()\n      .replace(/[^a-z0-9]+/g, \"-\")\n      .replace(/^-|-$/g, \"\");\n    const sourceId = \"trends_\" + country + \"_\" + slug;\n    const sourceUrl =\n      \"https://trends.google.com/trends/explore?q=\" +\n      encodeURIComponent(keyword) +\n      \"&geo=\" +\n      country;\n\n    out.push({\n      json: {\n        workflow: keyword,\n        platform: \"trends\",\n        country,\n        keyword,\n        views: 0,\n        likes: 0,\n        comments: 0,\n        replies: 0,\n        contributors: 0,\n        trend_interest: trendInterest,\n        trend_change_pct: trendChangePct,\n        like_to_view_ratio: 0,\n        comment_to_view_ratio: 0,\n        popularity_score: popularityScore,\n        source_id: sourceId,\n        source_url: sourceUrl,\n        channel_title: \"Google Trends\",\n        published_at: \"\",\n        collected_at: new Date().toISOString(),\n      },\n    });\n  }\n}\n\nreturn out;"
+      },
+      "id": "d409f292-2c59-434e-ba54-f722f4787648",
+      "name": "Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "RJ1pDG4Nz5cfmPe1",
+          "cachedResultName": "workflow_popularity"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "source_id",
+              "keyValue": "={{ $json.source_id }}"
+            },
+            {
+              "keyName": "platform",
+              "keyValue": "={{ $json.platform }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "source_id"
+          ],
+          "value": {
+            "workflow": "={{ $json.workflow }}",
+            "platform": "={{ $json.platform }}",
+            "country": "={{ $json.country }}",
+            "keyword": "={{ $json.keyword }}",
+            "views": "={{ $json.views }}",
+            "likes": "={{ $json.likes }}",
+            "comments": "={{ $json.comments }}",
+            "replies": "={{ $json.replies }}",
+            "contributors": "={{ $json.contributors }}",
+            "trend_interest": "={{ $json.trend_interest }}",
+            "trend_change_pct": "={{ $json.trend_change_pct }}",
+            "like_to_view_ratio": "={{ $json.like_to_view_ratio }}",
+            "comment_to_view_ratio": "={{ $json.comment_to_view_ratio }}",
+            "popularity_score": "={{ $json.popularity_score }}",
+            "source_id": "={{ $json.source_id }}",
+            "source_url": "={{ $json.source_url }}",
+            "channel_title": "={{ $json.channel_title }}",
+            "published_at": "={{ $json.published_at }}",
+            "collected_at": "={{ $json.collected_at }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "16c758d8-e3cb-46e0-906e-3a4f826846a3",
+      "name": "Upsert Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        96
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking Test": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Trends": {
+      "main": [
+        [
+          {
+            "node": "Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score": {
+      "main": [
+        [
+          {
+            "node": "Upsert Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "30f44b5e-de02-4f43-a352-6027aa5e0fc5",
+  "meta": {
+    "instanceId": "eab16c636546cfe3db177bd6b3e3ed3933038ab4cd0c9da7feececfcb1a53b16"
+  },
+  "nodeGroups": [
+    {
+      "id": "6d1d7e5f-eab8-4e2c-92f5-430cb7fa20ea",
+      "name": "Collect",
+      "nodeIds": [
+        "96cb5285-3829-47a1-b264-3f64628cbad8"
+      ],
+      "description": "Fetches Google Trends interest over ~60 days for 5 keywords across US + India using just 2 SerpApi multi-query requests per run."
+    },
+    {
+      "id": "4c903cb8-860b-475f-9341-319bfd8f01d6",
+      "name": "Score & Store",
+      "nodeIds": [
+        "d409f292-2c59-434e-ba54-f722f4787648",
+        "16c758d8-e3cb-46e0-906e-3a4f826846a3"
+      ],
+      "description": "Transposes each multi-query response per keyword, computes average interest and momentum, then upserts 10 rows into workflow_popularity."
+    }
+  ],
+  "id": "qmChWQunMXdOrdVV",
+  "tags": []
+}

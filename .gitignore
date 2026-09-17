@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# n8n Workflow Popularity System — Git Ignore
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Environment / secrets — NEVER commit
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data / database files (generated, not source)
+data/*.db
+data/*.sqlite
+data/workflows.db
+
+# Alembic
+# (keep migrations, ignore generated pyc)
+database/migrations/__pycache__/
+
+# Logs
+*.log
+logs/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Docker volumes (local mounts)
+pgdata/
+n8n_data/

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>n8n Workflow Popularity Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #ff6d5a; /* n8n coral */
+            --youtube: #ff0000;
+            --google: #4285f4;
+            --forum: #10b981;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        h1 {
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid var(--text-muted);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.5);
+        }
+        .card.youtube { border-left-color: var(--youtube); }
+        .card.google { border-left-color: var(--google); }
+        .card.forum { border-left-color: var(--forum); }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+        .badge.youtube { background: rgba(255,0,0,0.1); color: var(--youtube); }
+        .badge.google { background: rgba(66,133,244,0.1); color: var(--google); }
+        .badge.forum { background: rgba(16,185,129,0.1); color: var(--forum); }
+        .badge.country { background: rgba(255,255,255,0.1); color: var(--text-muted); float: right;}
+        
+        .title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .score {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .score span {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1rem;
+        }
+        .loading {
+            text-align: center;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+            padding: 4rem;
+        }
+        .nav {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .nav button {
+            background: var(--bg-card);
+            color: var(--text-light);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .nav button:hover, .nav button.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>n8n Popularity Dashboard</h1>
+        <div class="subtitle">Real-time rankings from YouTube, Forum, and Google Trends</div>
+    </div>
+
+    <div class="nav">
+        <button class="active" onclick="loadData('')">All Data</button>
+        <button onclick="loadData('?platform=YouTube')">YouTube Only</button>
+        <button onclick="loadData('?platform=Google')">Google Trends Only</button>
+        <button onclick="loadData('?country=US')">US Market</button>
+        <button onclick="loadData('?country=IN')">India Market</button>
+    </div>
+
+    <div class="grid" id="grid">
+        <div class="loading">Loading live data...</div>
+    </div>
+
+    <script>
+        async function loadData(query = "") {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '<div class="loading">Fetching from API...</div>';
+            
+            // Highlight active button
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            try {
+                const response = await fetch(`/workflows${query}`);
+                const data = await response.json();
+                
+                grid.innerHTML = '';
+                
+                data.workflows.forEach(w => {
+                    const card = document.createElement('div');
+                    const platformClass = w.platform.toLowerCase().replace(' ', '');
+                    card.className = `card ${platformClass}`;
+                    
+                    const formatNum = (num) => new Intl.NumberFormat('en-US').format(num || 0);
+                    
+                    let metricsHtml = '';
+                    if (w.platform === 'YouTube') {
+                        metricsHtml = `
+                            <div>👁️ ${formatNum(w.popularity_metrics.views)}</div>
+                            <div>👍 ${formatNum(w.popularity_metrics.likes)}</div>
+                            <div>💬 ${formatNum(w.popularity_metrics.comments)}</div>
+                        `;
+                    } else if (w.platform === 'Google') {
+                        metricsHtml = `
+                            <div>📈 Interest: ${w.popularity_metrics.search_interest}</div>
+                            <div>🚀 Growth: ${w.popularity_metrics.growth_30_60d_pct}%</div>
+                        `;
+                    } else {
+                        metricsHtml = `
+                            <div>👁️ ${formatNum(w.popularity_metrics.views)}</div>
+                            <div>💬 ${formatNum(w.popularity_metrics.replies)}</div>
+                            <div>👍 ${formatNum(w.popularity_metrics.likes)}</div>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        <div class="badge ${platformClass}">${w.platform}</div>
+                        <div class="badge country">${w.country}</div>
+                        <h3 class="title" title="${w.workflow}">${w.workflow}</h3>
+                        <div class="score">${w.popularity_score} <span>/ 100</span></div>
+                        <div class="metrics">
+                            ${metricsHtml}
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                grid.innerHTML = `<div class="loading" style="color: var(--primary)">Failed to load data. API is offline.</div>`;
+            }
+        }
+        
+        // Initial load
+        window.onload = () => loadData('');
+    </script>
+</body>
+</html>

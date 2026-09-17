@@ -1,0 +1,293 @@
+{
+  "name": "Popularity \u2014 Step 2: Forum Collector",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b7b97f79-9ee4-426e-8bda-98803159b3f6",
+      "name": "When clicking Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Search term and result cap for this collection run.\nconst keyword = \"workflow\";\nconst maxResults = 25;\nreturn [{ json: { keyword, maxResults, country: \"GLOBAL\" } }];"
+      },
+      "id": "fc32d141-b028-4456-b219-b73ff69df22a",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "a471ade8-6ce2-4f57-9921-5b6d1e9cce94",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://community.n8n.io/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.keyword }} order:latest"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f4bfff52-020e-42d0-849b-0ba4873bf631",
+      "name": "Search Topics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The search response carries a topics[] array (without engagement\n// counts). Flatten it to one item per topic, capped at maxResults, so the\n// next node can fetch full stats per topic.\nconst maxResults = Number($('Config').first().json.maxResults || 25);\n\nconst out = [];\nfor (const item of $input.all()) {\n  const topics = item.json?.topics || [];\n  for (const t of topics) {\n    if (!t || !t.id) continue;\n    out.push({\n      json: {\n        topic_id: t.id,\n        slug: t.slug || \"\",\n        title: t.title || \"\",\n      },\n    });\n    if (out.length >= maxResults) break;\n  }\n}\n\nreturn out;"
+      },
+      "id": "c2d38bb4-aa56-4583-ac2f-70373b9a655b",
+      "name": "Extract Topics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://community.n8n.io/t/{{ $json.topic_id }}.json",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 600
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "b54a108c-d902-44e3-b077-9426e7102039",
+      "name": "Get Topic Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const keyword = $('Config').first().json.keyword;\nconst country = $('Config').first().json.country;\nconst out = [];\n\n// Each input item is one topic endpoint response with full engagement.\nfor (const item of $input.all()) {\n  const t = item.json || {};\n  if (!t.id) continue;\n\n  const views = Number(t.views || 0);\n  const likes = Number(t.like_count || 0);\n  const replies = Number(t.reply_count || 0);\n  const contributors = Number(t.participant_count || 0);\n\n  // Reuse \"comments\" as the reply count so the shared schema and scoring\n  // formula stay consistent with the YouTube collector.\n  const comments = replies;\n\n  const likeToView = views > 0 ? likes / views : 0;\n  const commentToView = views > 0 ? comments / views : 0;\n\n  const popularityScore =\n    Math.log10(views + 1) * 40 +\n    likeToView * 300 +\n    commentToView * 600;\n\n  const slug = t.slug || \"\";\n  const sourceUrl = slug\n    ? \"https://community.n8n.io/t/\" + slug + \"/\" + t.id\n    : \"https://community.n8n.io/t/\" + t.id;\n\n  out.push({\n    json: {\n      workflow: t.title || \"\",\n      platform: \"forum\",\n      country,\n      keyword,\n      views,\n      likes,\n      comments,\n      replies,\n      contributors,\n      like_to_view_ratio: Number(likeToView.toFixed(6)),\n      comment_to_view_ratio: Number(commentToView.toFixed(6)),\n      popularity_score: Number(popularityScore.toFixed(2)),\n      source_id: \"forum_\" + t.id,\n      source_url: sourceUrl,\n      channel_title: \"n8n Community Forum\",\n      published_at: t.created_at || \"\",\n      collected_at: new Date().toISOString(),\n    },\n  });\n}\n\nreturn out;"
+      },
+      "id": "1eb98fe9-3fff-4b6c-bd51-8011b0e67fc7",
+      "name": "Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "RJ1pDG4Nz5cfmPe1"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "source_id",
+              "keyValue": "={{ $json.source_id }}"
+            },
+            {
+              "keyName": "platform",
+              "keyValue": "={{ $json.platform }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "source_id"
+          ],
+          "value": {
+            "workflow": "={{ $json.workflow }}",
+            "platform": "={{ $json.platform }}",
+            "country": "={{ $json.country }}",
+            "keyword": "={{ $json.keyword }}",
+            "views": "={{ $json.views }}",
+            "likes": "={{ $json.likes }}",
+            "comments": "={{ $json.comments }}",
+            "replies": "={{ $json.replies }}",
+            "contributors": "={{ $json.contributors }}",
+            "like_to_view_ratio": "={{ $json.like_to_view_ratio }}",
+            "comment_to_view_ratio": "={{ $json.comment_to_view_ratio }}",
+            "popularity_score": "={{ $json.popularity_score }}",
+            "source_id": "={{ $json.source_id }}",
+            "source_url": "={{ $json.source_url }}",
+            "channel_title": "={{ $json.channel_title }}",
+            "published_at": "={{ $json.published_at }}",
+            "collected_at": "={{ $json.collected_at }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "5d9691a2-0b86-4af6-ae31-1587cd2e9a9f",
+      "name": "Upsert Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        96
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking Test": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Search Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Topics": {
+      "main": [
+        [
+          {
+            "node": "Extract Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Topics": {
+      "main": [
+        [
+          {
+            "node": "Get Topic Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Topic Stats": {
+      "main": [
+        [
+          {
+            "node": "Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score": {
+      "main": [
+        [
+          {
+            "node": "Upsert Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3c604c8b-b501-4b37-84ab-2ee1fa95c8a3",
+  "meta": {
+    "instanceId": "c6601c33c199a15f07c60224578815bff2d9d32b0f7c05944ee387a3c5555178"
+  },
+  "nodeGroups": [
+    {
+      "id": "7d696bf3-c9c7-4dfe-8c85-d3c8d780c27d",
+      "name": "Collect",
+      "nodeIds": [
+        "f4bfff52-020e-42d0-849b-0ba4873bf631",
+        "c2d38bb4-aa56-4583-ac2f-70373b9a655b",
+        "b54a108c-d902-44e3-b077-9426e7102039"
+      ],
+      "description": "Search the n8n community forum for workflow topics and fetch per-topic engagement stats."
+    },
+    {
+      "id": "59d9cbf6-35b0-413e-be9d-41d03f816688",
+      "name": "Score & Store",
+      "nodeIds": [
+        "1eb98fe9-3fff-4b6c-bd51-8011b0e67fc7",
+        "5d9691a2-0b86-4af6-ae31-1587cd2e9a9f"
+      ],
+      "description": "Compute engagement ratios and popularity score, then upsert into the workflow_popularity data table."
+    }
+  ],
+  "id": "XiUhQ7RWYvk90tPx",
+  "tags": []
+}
