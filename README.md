@@ -142,16 +142,16 @@ Platforms cannot be scored on raw view count alone (e.g. 10,000 YouTube views vs
 * **Google Trends Formula:**
   $$\text{Score} = \min\left(100,\ 0.75 \cdot \text{Search Interest} + 0.5 \cdot \max(0, \text{Growth \%})\right)$$
 
----
+## ⚡ Native n8n Automation Engine (Primary Orchestration)
 
-## 🔄 Optional Native n8n Workflows
+As specified in the assignment requirements, the system is engineered with **n8n as the core orchestration pipeline**. Four production-ready workflow JSONs are available in the [`n8n/`](n8n/) folder to execute automated daily data collection, processing, and ranking directly on your n8n canvas:
 
-If you wish to run this automation entirely inside n8n without external Python scripts, 4 production-ready JSON workflows are provided in the [`n8n/`](n8n/) folder:
+1. **`n8n/youtube_collector.json`** — Automated YouTube Data API collector storing engagement signals into n8n Data Tables.
+2. **`n8n/forum_collector.json`** — Automated Discourse API pagination collector fetching community topics.
+3. **`n8n/trends_collector.json`** — SerpApi Google Trends fetcher tracking keyword growth.
+4. **`n8n/combine_and_rank.json`** — Native JavaScript Code node ranking engine computing normalized 0–100 scores across all sources.
 
-1. `n8n/youtube_collector.json` — YouTube Data API fetch & Data Table write.
-2. `n8n/forum_collector.json` — Forum Discourse API fetch & Data Table write.
-3. `n8n/trends_collector.json` — SerpApi Google Trends fetch & Data Table write.
-4. `n8n/combine_and_rank.json` — Code node ranking engine and normalization.
+> **Zero External Dependency Mode:** You can import these 4 workflows directly into n8n (`http://localhost:5678`) to run the entire data harvesting and ranking lifecycle without any external servers.
 
 ---
 
@@ -175,3 +175,9 @@ Validates:
 - More Data Sources (GitHub, Reddit, etc.)
 - Scale to 25,000+ Records
 - Alerts & Notifications for Trending Workflows
+
+---
+
+## 📄 License & Attribution
+Developed for the Technical Assignment. Code is released under the [MIT License](LICENSE).
+
