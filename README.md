@@ -169,7 +169,7 @@ Validates:
 
 ---
 
-## ## 🚀 Future Roadmap & Scalability
+## 🚀 Future Roadmap & Scalability
 
 - Real-Time Popularity & Trend Monitoring
 - More Data Sources (GitHub, Reddit, etc.)
