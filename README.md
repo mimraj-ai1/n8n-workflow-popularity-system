@@ -193,3 +193,9 @@ Validates:
 - More Data Sources (GitHub, Reddit, etc.)
 - Scale to 25,000+ Records
 - Alerts & Notifications for Trending Workflows
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
