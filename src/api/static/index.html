@@ -108,23 +108,54 @@
             padding: 4rem;
         }
         .nav {
-            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
             margin-bottom: 2rem;
         }
         .nav button {
             background: var(--bg-card);
             color: var(--text-light);
             border: 1px solid rgba(255,255,255,0.1);
-            padding: 0.5rem 1.5rem;
+            padding: 0.5rem 1.25rem;
             border-radius: 8px;
             cursor: pointer;
-            margin: 0 0.5rem;
-            font-size: 1rem;
+            font-size: 0.95rem;
             transition: all 0.2s;
         }
         .nav button:hover, .nav button.active {
             background: var(--primary);
             border-color: var(--primary);
+            color: #fff;
+        }
+        .search-box {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-light);
+            padding: 0.55rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 260px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-box:focus {
+            border-color: var(--primary);
+        }
+        .btn-refresh {
+            background: rgba(255, 109, 90, 0.15) !important;
+            border-color: var(--primary) !important;
+            color: var(--primary) !important;
+            font-weight: 600;
+        }
+        .btn-refresh:hover {
+            background: var(--primary) !important;
+            color: #fff !important;
+        }
+        .card {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -136,11 +167,14 @@
     </div>
 
     <div class="nav">
-        <button class="active" onclick="loadData('')">All Data</button>
-        <button onclick="loadData('?platform=YouTube')">YouTube Only</button>
-        <button onclick="loadData('?platform=Google')">Google Trends Only</button>
-        <button onclick="loadData('?country=US')">US Market</button>
-        <button onclick="loadData('?country=IN')">India Market</button>
+        <button class="active" onclick="setFilter('', this)">All Data</button>
+        <button onclick="setFilter('?platform=YouTube', this)">YouTube Only</button>
+        <button onclick="setFilter('?platform=Forum', this)">Forum Only</button>
+        <button onclick="setFilter('?platform=Google', this)">Google Trends Only</button>
+        <button onclick="setFilter('?country=US', this)">US Market</button>
+        <button onclick="setFilter('?country=IN', this)">India Market</button>
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Search workflows..." oninput="debounceSearch()">
+        <button class="btn-refresh" onclick="triggerLiveRefresh(this)">🔄 Refresh Live Data</button>
     </div>
 
     <div class="grid" id="grid">
@@ -148,24 +182,74 @@
     </div>
 
     <script>
+        let currentQuery = "";
+        let searchTimer = null;
+
+        function setFilter(query, btn) {
+            currentQuery = query;
+            document.querySelectorAll('.nav button:not(.btn-refresh)').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            const searchVal = document.getElementById('searchInput').value.trim();
+            const fullQuery = buildQuery(searchVal);
+            loadData(fullQuery);
+        }
+
+        function debounceSearch() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                const searchVal = document.getElementById('searchInput').value.trim();
+                loadData(buildQuery(searchVal));
+            }, 300);
+        }
+
+        function buildQuery(search) {
+            let q = currentQuery;
+            if (search) {
+                const sep = q.includes('?') ? '&' : '?';
+                q += `${sep}search=${encodeURIComponent(search)}`;
+            }
+            return q;
+        }
+
+        async function triggerLiveRefresh(btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Collecting...';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/workflows/refresh', { method: 'POST' });
+                const result = await res.json();
+                loadData(buildQuery(document.getElementById('searchInput').value.trim()));
+                btn.innerHTML = `✅ Saved ${result.records_saved || ''}`;
+                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2500);
+            } catch (err) {
+                btn.innerHTML = '⚠️ Refresh failed';
+                setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2500);
+            }
+        }
+
         async function loadData(query = "") {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<div class="loading">Fetching from API...</div>';
-            
-            // Highlight active button
-            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            grid.innerHTML = '<div class="loading">Fetching live data...</div>';
 
             try {
                 const response = await fetch(`/workflows${query}`);
                 const data = await response.json();
                 
                 grid.innerHTML = '';
+
+                if (!data.workflows || data.workflows.length === 0) {
+                    grid.innerHTML = '<div class="loading" style="color: var(--text-muted)">No workflows match this filter.</div>';
+                    return;
+                }
                 
                 data.workflows.forEach(w => {
                     const card = document.createElement('div');
-                    const platformClass = w.platform.toLowerCase().replace(' ', '');
+                    const platformClass = (w.platform || '').toLowerCase().replace(' ', '');
                     card.className = `card ${platformClass}`;
+                    if (w.source_url) {
+                        card.onclick = () => window.open(w.source_url, '_blank');
+                        card.title = `Click to view live source: ${w.source_url}`;
+                    }
                     
                     const formatNum = (num) => new Intl.NumberFormat('en-US').format(num || 0);
                     
@@ -178,13 +262,13 @@
                         `;
                     } else if (w.platform === 'Google') {
                         metricsHtml = `
-                            <div>📈 Interest: ${w.popularity_metrics.search_interest}</div>
-                            <div>🚀 Growth: ${w.popularity_metrics.growth_30_60d_pct}%</div>
+                            <div>📈 Interest: ${w.popularity_metrics.search_interest || 0}</div>
+                            <div>🚀 Growth: ${w.popularity_metrics.growth_30_60d_pct || 0}%</div>
                         `;
                     } else {
                         metricsHtml = `
                             <div>👁️ ${formatNum(w.popularity_metrics.views)}</div>
-                            <div>💬 ${formatNum(w.popularity_metrics.replies)}</div>
+                            <div>💬 ${formatNum(w.popularity_metrics.replies || w.popularity_metrics.comments)}</div>
                             <div>👍 ${formatNum(w.popularity_metrics.likes)}</div>
                         `;
                     }
