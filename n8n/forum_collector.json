@@ -58,6 +58,7 @@
         },
         "options": {}
       },
+      "onError": "continueRegularOutput",
       "id": "f4bfff52-020e-42d0-849b-0ba4873bf631",
       "name": "Search Topics",
       "type": "n8n-nodes-base.httpRequest",
@@ -92,6 +93,7 @@
           }
         }
       },
+      "onError": "continueRegularOutput",
       "id": "b54a108c-d902-44e3-b077-9426e7102039",
       "name": "Get Topic Stats",
       "type": "n8n-nodes-base.httpRequest",

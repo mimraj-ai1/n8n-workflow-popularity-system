@@ -85,6 +85,7 @@
           }
         }
       },
+      "onError": "continueRegularOutput",
       "id": "96cb5285-3829-47a1-b264-3f64628cbad8",
       "name": "Get Trends",
       "type": "n8n-nodes-base.httpRequest",

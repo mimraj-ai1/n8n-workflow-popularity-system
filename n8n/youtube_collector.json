@@ -59,6 +59,7 @@
         },
         "options": {}
       },
+      "onError": "continueRegularOutput",
       "id": "ad16f4ea-fcfb-4b18-9ebc-9626d7986aa8",
       "name": "Search Videos",
       "type": "n8n-nodes-base.httpRequest",
@@ -103,6 +104,7 @@
         },
         "options": {}
       },
+      "onError": "continueRegularOutput",
       "id": "47c2bd02-8e9a-4686-9065-fa179974d1f1",
       "name": "Get Video Stats",
       "type": "n8n-nodes-base.httpRequest",
