@@ -1,16 +1,17 @@
 @echo off
-echo === n8n Workflow Popularity System ===
+title n8n Workflow Popularity System - API Server
 echo.
-echo Step 1: Installing dependencies...
-pip install -r requirements.txt
-
+echo ============================================================
+echo   n8n Workflow Popularity System - REST API Server
+echo ============================================================
 echo.
-echo Step 2: Running data collection...
-python -m src.scheduler.cron
-
+echo Checking dependencies...
+python -m pip install -r requirements.txt --quiet
 echo.
-echo Step 3: Starting API server on http://localhost:8000
-echo   Swagger docs: http://localhost:8000/docs
-echo   Dashboard:    http://localhost:8000/dashboard
+echo Starting API server...
+echo   Swagger docs:  http://localhost:8000/docs
+echo   Dashboard:     http://localhost:8000/dashboard
+echo ============================================================
 echo.
-python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+python run_api.py
+pause

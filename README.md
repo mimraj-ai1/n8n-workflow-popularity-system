@@ -10,6 +10,8 @@ An automated data pipeline, mathematical ranking engine, and production-grade RE
 
 Includes a verified dataset of **1,350+ live workflows** (with full evidence links and engagement signals) and a curated benchmark deliverable of the **Top 50**.
 
+> 📖 **Quick Setup & Troubleshooting Guide:** See [**`HOW_TO_RUN.md`**](HOW_TO_RUN.md) for step-by-step launch instructions and instant solutions for any terminal/port errors.
+
 ---
 
 ## 📌 Deliverables Summary
