@@ -159,3 +159,7 @@ If you run an n8n instance locally (`http://localhost:5678`) or via Docker Compo
 3. In n8n, click **Workflow Menu (top right) → Import from File...**
 4. Open the Data Table nodes and select your created table from the dropdown.
 5. Click **Test step** or **Execute Workflow** to run live on the n8n canvas!
+
+> **Quick Tips for n8n Canvas:**
+> * **Zero-Setup Recommendation:** For instant canvas testing without any API keys, run **`forum_collector.json`**. It connects directly to the open Discourse API out-of-the-box.
+> * **YouTube Collector:** When testing **`youtube_collector.json`**, provide your Google Cloud YouTube Data API v3 key inside the `key` parameter of the *Search Videos* and *Get Video Stats* nodes.
