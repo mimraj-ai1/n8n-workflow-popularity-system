@@ -8,19 +8,19 @@
 
 An automated data pipeline, mathematical ranking engine, and production-grade REST API designed to discover, track, score, and rank **n8n workflows** by popularity across **YouTube**, the **n8n Community Forum**, and **Google Trends**.
 
-Includes a verified dataset of **1,350+ live workflows** (with full evidence links and engagement signals) and a curated benchmark deliverable of the **Top 50**.
+Includes a verified dataset of **1,350+ live workflows** (with full evidence links and engagement signals) along with a curated benchmark of the **Top 50**.
 
 > 📖 **Quick Setup & Troubleshooting Guide:** See [**`HOW_TO_RUN.md`**](HOW_TO_RUN.md) for step-by-step launch instructions and instant solutions for any terminal/port errors.
 
 ---
 
-## 📌 Deliverables Summary
+## 📌 System Components
 
-| Requirement | Implementation & Repository Location | Status |
+| Component | Implementation & Repository Location | Status |
 | :--- | :--- | :---: |
-| **1. Working REST API** | FastAPI application in [`src/api/main.py`](file:///d:/n8n/n8n-workflow-popularity-system/src/api/main.py) with interactive Swagger UI (`/docs`) and web dashboard (`/dashboard`). | ✅ Complete |
-| **2. 50+ Dataset with Evidence** | Curated benchmark of 50 workflows in [`data/n8n_popular_workflows_50.json`](file:///d:/n8n/n8n-workflow-popularity-system/data/n8n_popular_workflows_50.json) + **1,357 live records** in [`data/live_dataset_evidence.json`](file:///d:/n8n/n8n-workflow-popularity-system/data/live_dataset_evidence.json) with verifiable URLs, view counts, and engagement ratios. | ✅ Complete |
-| **3. Approach & Documentation** | Full architectural overview, scoring formulas, and data dictionary in [`DOCUMENTATION.md`](file:///d:/n8n/n8n-workflow-popularity-system/DOCUMENTATION.md). | ✅ Complete |
+| **1. REST API** | FastAPI application in [`src/api/main.py`](file:///d:/n8n/n8n-workflow-popularity-system/src/api/main.py) with interactive Swagger UI (`/docs`) and web dashboard (`/dashboard`). | ✅ Complete |
+| **2. Evidence Dataset** | Curated benchmark of 50 workflows in [`data/n8n_popular_workflows_50.json`](file:///d:/n8n/n8n-workflow-popularity-system/data/n8n_popular_workflows_50.json) + **1,357 live records** in [`data/live_dataset_evidence.json`](file:///d:/n8n/n8n-workflow-popularity-system/data/live_dataset_evidence.json) with verifiable URLs, view counts, and engagement ratios. | ✅ Complete |
+| **3. Technical Docs** | Full architectural overview, scoring formulas, and data dictionary in [`DOCUMENTATION.md`](file:///d:/n8n/n8n-workflow-popularity-system/DOCUMENTATION.md). | ✅ Complete |
 | **4. Native n8n Workflows** | 4 ready-to-import JSON workflow automations in [`n8n/`](file:///d:/n8n/n8n-workflow-popularity-system/n8n/). | ✅ Complete |
 
 ---
@@ -142,10 +142,10 @@ All workflow entries contain **verifiable evidence** pointing directly to live r
 >
 > **Dual Ingestion Architecture (Live API + Offline Resilience Fallback):**
 > * The shipped dataset was collected directly from live public endpoints.
-> * Each collector implements an **Offline Resilience Baseline** (`is_fallback: true`) to gracefully handle sandboxed evaluator environments, offline evaluation, or third-party HTTP 429 rate limits without crashing.
+> * Each collector implements an **Offline Resilience Baseline** (`is_fallback: true`) to gracefully handle offline setups, local network disconnects, or third-party HTTP 429 rate limits without crashing.
 
 - Complete evidence file: [`data/live_dataset_evidence.json`](data/live_dataset_evidence.json)
-- Top 50 curated deliverable: [`data/n8n_popular_workflows_50.json`](data/n8n_popular_workflows_50.json)
+- Curated Top 50 dataset: [`data/n8n_popular_workflows_50.json`](data/n8n_popular_workflows_50.json)
 
 ---
 
@@ -162,7 +162,7 @@ Platforms cannot be scored on raw view count alone (e.g. 10,000 YouTube views vs
 
 ## ⚡ Native n8n Automation Engine 
 
-As specified in the assignment requirements, the system is engineered with **n8n as the core orchestration pipeline**. Four production-ready workflow JSONs are available in the [`n8n/`](n8n/) folder to execute automated daily data collection, processing, and ranking directly on your n8n canvas:
+The system is built around **n8n as the primary visual orchestration pipeline**. Four production-ready workflow JSONs are available in the [`n8n/`](n8n/) folder to execute automated daily data collection, processing, and ranking directly on your n8n canvas:
 
 1. **`n8n/youtube_collector.json`** — Automated YouTube Data API collector storing engagement signals into n8n Data Tables.
 2. **`n8n/forum_collector.json`** — Automated Discourse API pagination collector fetching community topics.

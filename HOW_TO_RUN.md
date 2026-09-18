@@ -1,7 +1,5 @@
 # 🚀 How to Run the n8n Workflow Popularity System
-### Complete Step-by-Step Instructions & Troubleshooting Guide
-
-This guide ensures **any evaluator, developer, or recruiter** can run this project in under 60 seconds on **Windows, macOS, or Linux** without errors.
+Quick instructions to set up, run, and test the project locally on **Windows, macOS, or Linux**, including fixes for common environment and port issues.
 
 ---
 
@@ -141,12 +139,11 @@ Once started, open your web browser:
 
 ---
 
-### Issue 6: Running `POST /workflows/refresh` in a restricted sandbox
-* **Symptom:** Calling `/workflows/refresh` shows `"pipeline_mode": "OFFLINE_RESILIENCE_SEED"`.
-* **Explanation & Resilience Architecture:**
-  - In cloud/CI environments or sandbox containers, third-party services (YouTube, Google Trends, Discourse) often enforce IP rate limits (HTTP 429) or require API keys.
-  - The system is built with **graceful degradation**: if external APIs block requests, collectors automatically fall back to an offline resilience seed dataset with verified baseline metrics, preventing pipeline failure.
-  - Your pre-shipped database (`data/workflows.db`) already contains **1,357 authentic records** collected from live endpoints.
+### Issue 6: Running `POST /workflows/refresh` without API keys or behind rate limits
+* **Symptom:** Calling `/workflows/refresh` returns `"pipeline_mode": "OFFLINE_RESILIENCE_SEED"`.
+* **How it works:**
+  - When running without a configured YouTube API key or when external rate limits (HTTP 429) are active, the pipeline falls back to the built-in offline seed baseline so tests and scripts complete without crashing.
+  - The SQLite database (`data/workflows.db`) is already populated with **1,357 verified records** collected from live endpoints.
 
 ---
 

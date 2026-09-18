@@ -1,14 +1,14 @@
 @echo off
 :: ============================================================
 ::  n8n Workflow Popularity System - One-Click Setup & Run
-::  For Internship Submission - Works on any Windows machine
+::  Works on any Windows machine (Windows 10 / 11)
 :: ============================================================
 title n8n Workflow Popularity System - Setup
 
 echo.
 echo  ============================================================
 echo   n8n Workflow Popularity System
-echo   Internship Project Setup
+echo   Automated Environment Setup & Launch
 echo  ============================================================
 echo.
 

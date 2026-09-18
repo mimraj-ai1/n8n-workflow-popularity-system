@@ -1,9 +1,9 @@
 # n8n Workflow Popularity System
-## Company Submission — Technical Documentation
+## Technical Architecture & Implementation Documentation
 
-**Prepared by:** Sheikh  
-**Submission Date:** September 2026  
-**Deliverable:** Working API + 50+ Workflow Dataset + Approach Documentation
+**Author:** Sheikh  
+**Release:** 1.0.0 (Production Ready)  
+**Components:** REST API + 1,350+ Evidence Dataset + Native n8n Pipelines
 
 ---
 
@@ -77,7 +77,7 @@ The result is a REST API serving ranked workflow data on a 0–100 popularity sc
 | **n8n Native** | n8n Data Tables | Fully serverless, zero infra |
 | **Python API** | SQLite + FastAPI | Restful HTTP API with Swagger docs |
 
-Both modes run from the same repository. The Python API (`src/`) provides HTTP endpoints for the company deliverable. The n8n workflows (`n8n/`) provide the scheduled automation.
+Both modes run from the same repository. The Python API (`src/`) provides REST HTTP endpoints for data access and dashboard visualization. The n8n workflows (`n8n/`) provide scheduled canvas automation.
 
 ---
 
@@ -134,7 +134,7 @@ Both modes run from the same repository. The Python API (`src/`) provides HTTP e
 
 ### 3.4 Geographic Segmentation & Known Platform Limitations
 
-The assignment requests regional segmentation between the United States (`US`) and India (`IN`). In our multi-platform implementation:
+The system provides regional segmentation between the United States (`US`) and India (`IN`):
 
 1. **YouTube & Google Trends (Regional Segmentation)**:
    - YouTube queries are segmented explicitly using Google Cloud's `regionCode="US"` and `regionCode="IN"`.
@@ -143,7 +143,7 @@ The assignment requests regional segmentation between the United States (`US`) a
 
 2. **n8n Community Forum (Global Dissemination)**:
    - Discourse threads on `community.n8n.io` represent the vast majority of community discussions (1,299 records in the verified dataset).
-   - **Honest Limitation & Data Integrity Principle**: Discourse does not capture or expose geographic location or country origins of topic creators. To adhere to strict scientific honesty (rather than fabricating synthetic country tags on technical discussions), forum topics are truthfully indexed as `"GLOBAL"`.
+   - **Data Integrity Principle**: Discourse does not capture or expose geographic location or country origins of topic creators. To adhere to strict data integrity (rather than fabricating synthetic country tags on technical discussions), forum topics are truthfully indexed as `"GLOBAL"`.
    - **Querying via API**:
      - `GET /workflows?country=US` filters exclusively for US-targeted workflows.
      - `GET /workflows?country=IN` filters exclusively for India-targeted workflows.
@@ -151,23 +151,23 @@ The assignment requests regional segmentation between the United States (`US`) a
 
 ### 3.5 Dual-Tier Ingestion & Resilience Fallback Architecture
 
-In real-world production environments and candidate evaluation sandboxes, third-party APIs can be unpredictable (e.g. YouTube free-tier quotas of 10,000 units/day quickly exhaust, Google Trends frequently returns HTTP 429 to cloud IPs, and forum endpoints may rate-limit).
+In production environments and automated CI/CD pipelines, third-party APIs can be unpredictable (e.g. YouTube free-tier quotas of 10,000 units/day quickly exhaust, Google Trends frequently returns HTTP 429 to cloud IPs, and forum endpoints may rate-limit).
 
-To prevent pipeline crashes during testing:
+To prevent pipeline crashes:
 - **Live Mode (`data_source: "live_api"`, `is_fallback: false`)**: The default production mode when active API keys and open internet access are available. Ingests fresh real-time topics and video metrics. The shipped dataset in `data/live_dataset_evidence.json` (1,357 records) was produced via this mode.
 - **Offline Resilience Mode (`data_source: "offline_resilience_seed"`, `is_fallback: true`)**: A deterministic baseline seed dataset containing real, verified n8n YouTube videos, forum topics, and trend baselines. When upstream APIs return 403/429 or when keys are absent, collectors degrade gracefully rather than throwing uncaught exceptions.
 - Every workflow entry explicitly tags its origin in `popularity_metrics.is_fallback` and `popularity_metrics.data_source`.
 
-### 3.6 Dataset Scope: Benchmark (50) vs Live Deliverable (1,357) vs Enterprise Scale (20,000+)
+### 3.6 Dataset Scale: Top 50 Benchmark, 1,350+ Live Records, and 20,000+ Scalability Architecture
 
-Depending on which version of the assignment specification is referenced:
-- **Core Minimum Requirement**: 50 popular workflows with evidence metrics.
-- **Shipped Deliverable in Repository**:
+The system supports multiple operational scales:
+- **Curated Baseline**: 50 highly popular workflows with complete evidence metrics.
+- **Shipped Datasets in Repository**:
   - `data/n8n_popular_workflows_50.json` (Curated Top 50 benchmark).
-  - `data/live_dataset_evidence.json` (**1,357 verified records**, clearing the 50-workflow bar by 27x).
+  - `data/live_dataset_evidence.json` (**1,357 verified records** with full engagement metrics).
 - **Roadmap to 20,000+ Workflows**:
   - Live YouTube queries alone cannot ingest 20,000 records on free-tier keys due to Google Cloud's 10,000 unit daily quota (~100 search queries/day).
-  - To reach 20,000+ workflows, the system is architected to stream-ingest the official n8n Public Templates API (`https://api.n8n.io/templates/workflows` which indexes 12,388 official community workflows) combined with GitHub API crawling (`path:**/*.json + n8n`) and deep historical Discourse pagination.
+  - To scale to 20,000+ workflows, the system is architected to stream-ingest the official n8n Public Templates API (`https://api.n8n.io/templates/workflows` which indexes 12,388 official community workflows) combined with GitHub API crawling (`path:**/*.json + n8n`) and deep historical Discourse pagination.
 
 ---
 
@@ -281,9 +281,9 @@ After starting the API: **http://localhost:8000/docs**
 
 ---
 
-## 6. Dataset Evidence (1,350+ Live Workflows & Top 50 Deliverable)
+## 6. Dataset Evidence (1,350+ Live Workflows & Top 50 Benchmark)
 
-The system contains **1,357 unique real workflow records** in SQLite storage (`data/workflows.db`) and exported to `data/live_dataset_evidence.json`. The curated benchmark deliverable is in `data/n8n_popular_workflows_50.json`.
+The system contains **1,357 unique verified workflow records** in SQLite storage (`data/workflows.db`) and exported to `data/live_dataset_evidence.json`. A curated Top 50 benchmark is provided in `data/n8n_popular_workflows_50.json`.
 
 ### Verified Breakdown by Platform
 
@@ -309,7 +309,7 @@ The system contains **1,357 unique real workflow records** in SQLite storage (`d
 
 **Evidence Files in Repository:**
 - `data/live_dataset_evidence.json` — Complete raw dataset of **1,357 workflows**, each containing verified `source_url` pointing to the original live YouTube video, Community Forum thread, or Trends chart.
-- `data/n8n_popular_workflows_50.json` — Curated top 50 ranked workflows matching the exact deliverable requirement.
+- `data/n8n_popular_workflows_50.json` — Curated top 50 ranked workflows benchmark.
 
 ---
 
@@ -325,8 +325,8 @@ Four JSON workflows are ready to import into any n8n instance:
 | `n8n/combine_and_rank.json` | Normalises + ranks all data | Daily 7 AM |
 
 > [!IMPORTANT]
-> **Instructions for Reviewers / HR testing the n8n JSON files:**
-> If you choose to import the bonus n8n JSON workflows into your own n8n instance, you **must** do the following:
+> **Importing and running the n8n JSON workflows locally:**
+> To run these workflows directly in your self-hosted n8n instance:
 > 1. In n8n, create a new **Data Table** (e.g., named `workflow_popularity`).
 > 2. Import the JSON files using **"Import from File..."** (do not copy/paste to avoid encoding errors).
 > 3. Open the orange **Data Table** nodes (e.g. "Upsert Row", "Get Source Rows", "Clear Rankings").
