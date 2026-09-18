@@ -159,7 +159,3 @@ If you run an n8n instance locally (`http://localhost:5678`) or via Docker Compo
 3. In n8n, click **Workflow Menu (top right) → Import from File...**
 4. Open the Data Table nodes and select your created table from the dropdown.
 5. Click **Test step** or **Execute Workflow** to run live on the n8n canvas!
-
----
-
-*Need any assistance? All core code is clean, typed, documented, and fully self-contained.*
