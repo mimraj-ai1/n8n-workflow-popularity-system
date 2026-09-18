@@ -190,5 +190,4 @@ Validates:
 - Real-Time Popularity & Trend Monitoring
 - More Data Sources (GitHub, Reddit, etc.)
 - Scale to 25,000+ Records
-- Scale to 20,000+ Records
 - Alerts & Notifications for Trending Workflows
