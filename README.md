@@ -187,7 +187,8 @@ Validates:
 
 ## 🚀 Future Roadmap & Scalability
 
-- **Real-Time Popularity & Trend Monitoring**: Webhook triggers for immediate detection of viral n8n nodes and templates.
-- **Additional Data Sources**: Ingest Reddit (`r/n8n`), GitHub repositories (`path:**/*.json + n8n`), and Stack Overflow.
-- **Scale to 20,000+ Records**: Stream-ingest the official n8n Public Templates catalog (`https://api.n8n.io/templates/workflows` indexing 12,388 templates) paired with deep Discourse crawls.
-- **Automated Alerts**: Email and Slack notifications when newly discovered workflows cross popularity score thresholds.
+- Real-Time Popularity & Trend Monitoring
+- More Data Sources (GitHub, Reddit, etc.)
+- Scale to 25,000+ Records
+- Scale to 20,000+ Records
+- Alerts & Notifications for Trending Workflows
