@@ -122,7 +122,8 @@
         "dataTableId": {
           "__rl": true,
           "mode": "id",
-          "value": "HdXajy2g3DYOtfC3"
+          "value": "RJ1pDG4Nz5cfmPe1",
+          "cachedResultName": "workflow_popularity"
         },
         "matchType": "allConditions",
         "filters": {
