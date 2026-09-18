@@ -30,9 +30,12 @@ def run_scheduled_pipeline() -> Dict[str, Any]:
     saved_count = storage.save_workflows(all_entries)
 
     duration = round(time.time() - start_time, 2)
+    has_fallback = any(e.popularity_metrics.get("is_fallback") for e in all_entries)
+    pipeline_mode = "OFFLINE_RESILIENCE_SEED" if has_fallback else "LIVE_API"
 
     summary = {
         "status": "success",
+        "pipeline_mode": pipeline_mode,
         "duration_seconds": duration,
         "collected_totals": {
             "youtube": len(yt_entries),
@@ -43,7 +46,7 @@ def run_scheduled_pipeline() -> Dict[str, Any]:
         "records_saved": saved_count
     }
 
-    logger.info(f"Pipeline completed in {duration}s. Total workflows saved: {saved_count}")
+    logger.info(f"Pipeline completed [{pipeline_mode}] in {duration}s. Total workflows saved/updated: {saved_count}")
     logger.info("=" * 60)
     return summary
 

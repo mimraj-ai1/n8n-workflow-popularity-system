@@ -44,9 +44,17 @@ class GoogleTrendsCollector:
 
         logger.info("Google Trends: attempting live collection via pytrends...")
         entries = []
+        consecutive_errors = 0
 
         for country, geo in [("US", "US"), ("IN", "IN")]:
             for keyword in KEYWORDS:
+                if consecutive_errors >= 2:
+                    logger.warning(
+                        "Google Trends: consecutive rate-limits (HTTP 429) or connection resets detected. "
+                        "Activating offline resilience seed dataset for system reliability."
+                    )
+                    return self._collect_seed()
+
                 try:
                     pytrends = TrendReq(hl="en-US", tz=330, timeout=(10, 30))
                     pytrends.build_payload(
@@ -84,6 +92,8 @@ class GoogleTrendsCollector:
                             "growth_30_60d_pct": round(growth, 2),
                             "like_to_view_ratio": 0.0,
                             "comment_to_view_ratio": 0.0,
+                            "is_fallback": False,
+                            "data_source": "live_api",
                         },
                         country=country,
                         popularity_score=score,
@@ -92,21 +102,21 @@ class GoogleTrendsCollector:
                             f"?q={keyword.replace(' ', '%20')}&geo={geo}"
                         ),
                     ))
-
+                    consecutive_errors = 0
                     time.sleep(self.REQUEST_DELAY)
 
                 except (ConnectionError, ConnectionResetError, OSError) as net_err:
-                    # Google forcibly closed the TCP connection — classic rate-limit
+                    consecutive_errors += 1
                     logger.warning(
-                        f"Google Trends TCP connection reset for '{keyword}' in {geo}: {net_err}. "
-                        "Sleeping 30s before next keyword."
+                        f"Google Trends rate-limit / connection reset for '{keyword}' in {geo}: {net_err}."
                     )
-                    time.sleep(30)
+                    time.sleep(2)
                 except Exception as exc:
+                    consecutive_errors += 1
                     logger.warning(
                         f"Google Trends failed for '{keyword}' in {geo}: {exc}"
                     )
-                    time.sleep(self.REQUEST_DELAY)
+                    time.sleep(2)
 
         if entries:
             logger.info(f"Google Trends LIVE: {len(entries)} real entries collected.")
@@ -114,19 +124,18 @@ class GoogleTrendsCollector:
 
         logger.warning(
             "Google Trends LIVE returned 0 entries (rate-limited or quota exceeded). "
-            "Using curated seed dataset."
+            "Using offline resilience seed dataset."
         )
         return self._collect_seed()
 
     def _collect_seed(self) -> List[WorkflowEntry]:
         """
-        Curated seed dataset based on real Google Trends data for n8n keywords.
-        Used when pytrends is rate-limited or the TCP connection is reset by Google.
-
-        Source evidence: https://trends.google.com/trends/explore?q=n8n+<keyword>&geo=<country>
-        Interest values are relative (0-100); growth is % change over the last 60 days.
+        Offline Resilience Seed Dataset.
+        Used when Google Trends API (pytrends) is rate-limited (HTTP 429), blocked by
+        datacenter firewall, or connection is reset by remote host.
+        Values represent baseline 90-day search interest indices and momentum percentages.
         """
-        logger.info("Google Trends: using curated seed dataset.")
+        logger.info("Google Trends: using offline resilience seed dataset.")
         seed = [
             # ── United States ──────────────────────────────────────────────────
             {"keyword": "n8n Slack",      "interest": 82, "growth": 42.0, "country": "US"},
@@ -165,6 +174,8 @@ class GoogleTrendsCollector:
                     "growth_30_60d_pct": growth,
                     "like_to_view_ratio": 0.0,
                     "comment_to_view_ratio": 0.0,
+                    "is_fallback": True,
+                    "data_source": "offline_resilience_seed",
                 },
                 country=country,
                 popularity_score=score,
@@ -174,7 +185,7 @@ class GoogleTrendsCollector:
                 ),
             ))
 
-        logger.info(f"Google Trends seed: {len(entries)} entries loaded.")
+        logger.info(f"Google Trends offline seed: {len(entries)} entries loaded.")
         return entries
 
     def collect(self) -> List[WorkflowEntry]:
